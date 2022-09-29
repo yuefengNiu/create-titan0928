@@ -12,7 +12,8 @@ const glob = require('globby');
 
 module.exports = class Commander {
   constructor() {
-    this.name = '测试';
+
+
     this.httpClient = urllib.create();
     this.registryUrl = 'http://npm.17zuoye.net/';
     this.sourceMap = {
@@ -20,29 +21,57 @@ module.exports = class Commander {
       'npm': 'https://registry.npmjs.org/',
       '17zuoye': 'http://npm.17zuoye.net/'
     }
-    this.locals = [];
+    this.locals = {
+      name: 'demo'
+    };
   }
 
   async run() {
     await this.paramsCollect();
     const templateDir = await this.downloadTemplate()
-    await this.copyTo(templateDir, path.join(process.cwd(), 'default'))
-    return 123;
+    console.log('默认名称', this.locals, this.locals.name)
+
+    fs.mkdirSync(this.locals.name)
+    await this.copyTo(templateDir, path.join(process.cwd(), this.locals.name))
   }
 
   /**
  * 收集用户输入的信息
  */
   async paramsCollect() {
-    const sources = Object.keys(this.sourceMap);
-    const answers = await inquirer.prompt({
-      name: 'source',
-      type: 'list',
-      message: '选个源吧？',
-      choices: sources,
-      pageSize: sources.length,
+    const { name } = await inquirer.prompt({
+      name: 'name',
+      type: 'input',
+      message: '输入项目名称：',
     });
-    this.registryUrl = this.sourceMap[answers.source];
+    if (name && name.length > 0) {
+      this.locals.name = name;
+    }
+
+    // const sources = Object.keys(this.sourceMap);
+    // const { source } = await inquirer.prompt({
+    //   name: 'source',
+    //   type: 'list',
+    //   message: '选个源吧',
+    //   choices: sources,
+    //   pageSize: sources.length,
+    // });
+    // this.registryUrl = this.sourceMap[source];
+
+    const { description } = await inquirer.prompt({
+      name: 'description',
+      type: 'input',
+      message: '输入项目描述：',
+    });
+    this.locals.description = description;
+
+    const { author } = await inquirer.prompt({
+      name: 'author',
+      type: 'input',
+      message: '输入作者：',
+    });
+    this.locals.author = author;
+
   }
 
   async getPackageInfo(pkgName) {
@@ -69,7 +98,7 @@ module.exports = class Commander {
   /**
  * 下载模板文件
  */
-  async downloadTemplate(pkgName = 'egg-init') {
+  async downloadTemplate(pkgName = 'egg-boilerplate-simple') {
     const result = await this.getPackageInfo(pkgName, false);
     const tgzUrl = result.dist.tarball;
 
@@ -90,7 +119,7 @@ module.exports = class Commander {
    */
   async log() {
     const args = Array.prototype.slice.call(arguments);
-    args[0] = chalk.blue(`[${this.name}] `) + args[0];
+    args[0] = chalk.blue(`[${this.locals.name}] `) + args[0];
     console.log.apply(console, args);
   }
 
@@ -125,16 +154,18 @@ module.exports = class Commander {
         continue;
       }
       fs.mkdirSync(dirname, { recursive: true })
-      const r = fs.createReadStream(from)
-      const w = fs.createWriteStream(to)
-      r.pipe(w)
+      const content = fs.readFileSync(from)
+      const replaced = await this.replaceTemplate(content, this.locals);
+      fs.writeFileSync(to, replaced)
     }
   }
 
-  /**
- * 替换package.json中的初始化变量
- */
-  async replaceParams() {
-
+  async replaceTemplate(content, scope) {
+    return content.toString().replace(/(\\)?{{ *(\w+) *}}/g, (block, skip, key) => {
+      if (skip) {
+        return block.substring(skip.length);
+      }
+      return scope.hasOwnProperty(key) ? scope[key] : block;
+    });
   }
 }
