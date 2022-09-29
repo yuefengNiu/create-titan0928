@@ -11,5 +11,13 @@
     "url": "https://github.com/yuefengNiu/create-titan0928.git"
   },
   "author": "yuefeng.niu",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.0.1",
+    "compressing": "^1.6.2",
+    "globby": "^11.0.0",
+    "inquirer": "^8.1.2",
+    "mz-modules": "^2.1.0",
+    "urllib": "^2.33.0"
+  }
 }
