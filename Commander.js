@@ -29,10 +29,9 @@ module.exports = class Commander {
   async run() {
     await this.paramsCollect();
     const templateDir = await this.downloadTemplate()
-    console.log('默认名称', this.locals, this.locals.name)
 
     fs.mkdirSync(this.locals.name)
-    await this.copyTo(templateDir, path.join(process.cwd(), this.locals.name))
+    await this.copyTo(path.join(templateDir, 'boilerplate'), path.join(process.cwd(), this.locals.name))
   }
 
   /**
